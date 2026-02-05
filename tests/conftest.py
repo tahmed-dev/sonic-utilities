@@ -461,3 +461,52 @@ def mock_restart_dhcp_relay_service():
 
     config.vlan.dhcp_relay_util.restart_dhcp_relay_service = origin_funcs[0]
     config.vlan.is_dhcp_relay_running = origin_funcs[1]
+
+import shutil
+import tempfile
+
+
+@pytest.fixture(autouse=True, scope="function")
+def _sandbox_mock_tables():
+    """Give each test its own pristine copy of mock_tables/.
+
+    Tests like portstat_test.py and pgdropstat_test.py overwrite JSON files
+    inside tests/mock_tables/ at runtime.  Under parallel execution this
+    causes race conditions.  By copying the entire directory tree to a
+    per-test temp dir and monkey-patching ``INPUT_DIR``, every test
+    operates on an isolated snapshot and races disappear.
+    """
+    src = os.path.join(test_path, "mock_tables")
+    tmp = tempfile.mkdtemp(prefix="mock_tables_")
+    dst = os.path.join(tmp, "mock_tables")
+    shutil.copytree(src, dst)
+
+    orig_input_dir = dbconnector.INPUT_DIR
+
+    # Patch INPUT_DIR for in-process tests
+    dbconnector.INPUT_DIR = dst
+    # Set env var so subprocesses (e.g. portstat script) also use the sandbox
+    os.environ["SONIC_MOCK_TABLES_DIR"] = dst
+
+    yield dst
+
+    dbconnector.INPUT_DIR = orig_input_dir
+    os.environ.pop("SONIC_MOCK_TABLES_DIR", None)
+    shutil.rmtree(tmp, ignore_errors=True)
+
+
+@pytest.fixture(autouse=True, scope="session")
+def _sandbox_user_cache():
+    """Isolate UserCache per session to prevent /tmp/cache/ races in xdist."""
+    from utilities_common.cli import UserCache
+    orig_cache_dir = UserCache.CACHE_DIR
+    tmp = tempfile.mkdtemp(prefix="usercache_")
+    sandbox_cache = tmp + "/"
+    UserCache.CACHE_DIR = sandbox_cache
+    os.environ["SONIC_CACHE_DIR"] = sandbox_cache
+
+    yield sandbox_cache
+
+    UserCache.CACHE_DIR = orig_cache_dir
+    os.environ.pop("SONIC_CACHE_DIR", None)
+    shutil.rmtree(tmp, ignore_errors=True)

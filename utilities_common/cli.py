@@ -915,7 +915,7 @@ def query_yes_no(question, default="yes"):
 class UserCache:
     """ General purpose cache directory created per user """
 
-    CACHE_DIR = "/tmp/cache/"
+    CACHE_DIR = os.environ.get("SONIC_CACHE_DIR", "/tmp/cache/")
 
     def __init__(self, app_name=None, tag=None):
         """ Initialize UserCache and create a cache directory if it does not exist.

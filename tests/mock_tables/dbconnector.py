@@ -113,7 +113,7 @@ class MockPubSub:
     def clear(self):
         pass
 
-INPUT_DIR = os.path.dirname(os.path.abspath(__file__))
+INPUT_DIR = os.environ.get("SONIC_MOCK_TABLES_DIR", os.path.dirname(os.path.abspath(__file__)))
 
 
 class SwssSyncClient(mockredis.MockRedis):
