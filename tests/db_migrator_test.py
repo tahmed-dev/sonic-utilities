@@ -861,8 +861,10 @@ class TestGoldenConfig(object):
         # hostname is from golden_config_db.json
         assert hostname == 'SONiC-Golden-Config'
 
-    def test_golden_config_ns(self):
+    @mock.patch('sonic_py_common.device_info.get_sonic_version_info', return_value={'asic_type': 'broadcom', 'build_version': 'test'})
+    def test_golden_config_ns(self, mock_version):
         # golden_config_db.json.test has no namespace
+        dbconnector.load_namespace_config()
         import db_migrator
         dbmgtr = db_migrator.DBMigrator("asic0")
         result = json.dumps(dbmgtr.config_src_data)
@@ -917,8 +919,10 @@ class TestMain(object):
     @mock.patch('argparse.ArgumentParser.parse_args')
     @mock.patch('swsscommon.swsscommon.SonicDBConfig.isGlobalInit', mock.MagicMock(return_value=False))
     @mock.patch('swsscommon.swsscommon.SonicDBConfig.initializeGlobalConfig', mock.MagicMock())
-    def test_init_namespace(self, mock_args):
+    @mock.patch('sonic_py_common.device_info.get_sonic_version_info', return_value={'asic_type': 'broadcom', 'build_version': 'test'})
+    def test_init_namespace(self, mock_version, mock_args):
         mock_args.return_value = argparse.Namespace(namespace="asic0", operation='version_202411_02', socket=None)
+        dbconnector.load_namespace_config()
         import db_migrator
         db_migrator.main()
 

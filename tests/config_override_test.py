@@ -2,6 +2,7 @@ import os
 import json
 import filecmp
 import importlib
+import tempfile
 import config.main as config
 
 from click.testing import CliRunner
@@ -202,15 +203,20 @@ class TestConfigOverride(object):
         # ConfigMgmt will call ConfigDBConnector to load default config_db.json.
         # Here I modify the ConfigMgmt initialization and make it initiated with
         # a source file which share the same as what we write to cfgdb.
-        CONFIG_DB_JSON_FILE = "startConfigDb.json"
-        write_config_to_file(read_data['running_config'], CONFIG_DB_JSON_FILE)
-        with mock.patch('config.main.device_info.is_yang_config_validation_enabled',
-                        mock.MagicMock(side_effect=is_yang_config_validation_enabled_side_effect)), \
-             mock.patch('config.main.ConfigMgmt',
-                        mock.MagicMock(side_effect=config_mgmt_side_effect)):
-            self.check_override_config_table(
-                db, config, read_data['running_config'], read_data['golden_config'],
-                read_data['expected_config'])
+        # Use a temp file to avoid races with other xdist workers.
+        fd, CONFIG_DB_JSON_FILE = tempfile.mkstemp(suffix=".json", prefix="startConfigDb_")
+        os.close(fd)
+        try:
+            write_config_to_file(read_data['running_config'], CONFIG_DB_JSON_FILE)
+            with mock.patch('config.main.device_info.is_yang_config_validation_enabled',
+                            mock.MagicMock(side_effect=is_yang_config_validation_enabled_side_effect)), \
+                 mock.patch('config.main.ConfigMgmt',
+                            mock.MagicMock(side_effect=config_mgmt_side_effect)):
+                self.check_override_config_table(
+                    db, config, read_data['running_config'], read_data['golden_config'],
+                    read_data['expected_config'])
+        finally:
+            os.unlink(CONFIG_DB_JSON_FILE)
 
 
     def test_running_config_yang_failure(self):
@@ -240,25 +246,31 @@ class TestConfigOverride(object):
         def read_json_file_side_effect(filename):
             return golden_config
 
+        # Use a temp file to avoid races with other xdist workers.
+        fd, CONFIG_DB_JSON_FILE = tempfile.mkstemp(suffix=".json", prefix="startConfigDb_")
+        os.close(fd)
+
         def config_mgmt_side_effect(configdb):
             return config_mgmt.ConfigMgmt(source=CONFIG_DB_JSON_FILE)
 
-        # ConfigMgmt will call ConfigDBConnector to load default config_db.json.
-        # Here I modify the ConfigMgmt initialization and make it initiated with
-        # a source file which share the same as what we write to cfgdb.
-        CONFIG_DB_JSON_FILE = "startConfigDb.json"
-        write_config_to_file(running_config, CONFIG_DB_JSON_FILE)
-        with mock.patch('config.main.read_json_file',
-                        mock.MagicMock(side_effect=read_json_file_side_effect)), \
-             mock.patch('config.main.ConfigMgmt',
-                        mock.MagicMock(side_effect=config_mgmt_side_effect)):
-                write_init_config_db(db.cfgdb, running_config)
+        try:
+            # ConfigMgmt will call ConfigDBConnector to load default config_db.json.
+            # Here I modify the ConfigMgmt initialization and make it initiated with
+            # a source file which share the same as what we write to cfgdb.
+            write_config_to_file(running_config, CONFIG_DB_JSON_FILE)
+            with mock.patch('config.main.read_json_file',
+                            mock.MagicMock(side_effect=read_json_file_side_effect)), \
+                 mock.patch('config.main.ConfigMgmt',
+                            mock.MagicMock(side_effect=config_mgmt_side_effect)):
+                    write_init_config_db(db.cfgdb, running_config)
 
-                runner = CliRunner()
-                result = runner.invoke(config.config.commands["override-config-table"],
-                                       ['golden_config_db.json'], obj=db)
-                assert result.exit_code == 1
-                assert "Failed to validate {}. Error:".format(jname) in result.output
+                    runner = CliRunner()
+                    result = runner.invoke(config.config.commands["override-config-table"],
+                                           ['golden_config_db.json'], obj=db)
+                    assert result.exit_code == 1
+                    assert "Failed to validate {}. Error:".format(jname) in result.output
+        finally:
+            os.unlink(CONFIG_DB_JSON_FILE)
 
     @classmethod
     def teardown_class(cls):

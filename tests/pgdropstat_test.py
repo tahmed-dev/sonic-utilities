@@ -7,6 +7,7 @@ import clear.main as clear
 import config.main as config
 
 from click.testing import CliRunner
+from .mock_tables import dbconnector
 from shutil import copyfile
 
 from utilities_common.cli import UserCache
@@ -41,14 +42,17 @@ class TestPgDropstat(object):
     def setup_class(cls):
         os.environ["PATH"] += os.pathsep + scripts_path
         os.environ['UTILITIES_UNIT_TESTING'] = "2"
+        dbconnector.dedicated_dbs = {}
+        dbconnector.load_database_config()
         print("SETUP")
 
     def replace_file(self, file_name_src, file_name_dst):
         sample_config_db_file = os.path.join(test_path, file_name_src)
-        mock_config_db_file = os.path.join(test_path, "mock_tables", file_name_dst)
+        mock_config_db_file = os.path.join(dbconnector.INPUT_DIR, file_name_dst)
+        bak_dir = os.path.dirname(dbconnector.INPUT_DIR)
 
         #Backup origin config_db and replace it with config_db file with disabled PG_DROP counters
-        copyfile(mock_config_db_file, "/tmp/" + file_name_dst)
+        copyfile(mock_config_db_file, os.path.join(bak_dir, file_name_dst))
         copyfile(sample_config_db_file, mock_config_db_file)
 
         return mock_config_db_file
@@ -59,7 +63,7 @@ class TestPgDropstat(object):
 
         yield
 
-        copyfile("/tmp/counters_db.json", mock_file)
+        copyfile(os.path.join(os.path.dirname(dbconnector.INPUT_DIR), "counters_db.json"), mock_file)
 
     @pytest.fixture(scope='function')
     def replace_config_db_file(self):
@@ -67,7 +71,7 @@ class TestPgDropstat(object):
 
         yield
 
-        copyfile("/tmp/config_db.json", mock_file)
+        copyfile(os.path.join(os.path.dirname(dbconnector.INPUT_DIR), "config_db.json"), mock_file)
 
     @pytest.fixture(scope='function')
     def replace_counter_db2_file(self):
@@ -75,7 +79,7 @@ class TestPgDropstat(object):
 
         yield
 
-        copyfile("/tmp/counters_db.json", mock_file)
+        copyfile(os.path.join(os.path.dirname(dbconnector.INPUT_DIR), "counters_db.json"), mock_file)
 
     @pytest.fixture(scope='function')
     def replace_counter_db3_file(self):
@@ -83,7 +87,7 @@ class TestPgDropstat(object):
 
         yield
 
-        copyfile("/tmp/counters_db.json", mock_file)
+        copyfile(os.path.join(os.path.dirname(dbconnector.INPUT_DIR), "counters_db.json"), mock_file)
 
     @pytest.fixture(scope='function')
     def replace_counter_db4_file(self):
@@ -91,7 +95,7 @@ class TestPgDropstat(object):
 
         yield
 
-        copyfile("/tmp/counters_db.json", mock_file)
+        copyfile(os.path.join(os.path.dirname(dbconnector.INPUT_DIR), "counters_db.json"), mock_file)
 
     def test_show_pg_drop_pg_port_map(self, replace_counter_db3_file):
         runner = CliRunner()

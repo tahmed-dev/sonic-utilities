@@ -1,6 +1,7 @@
 import json
 import os
 import sys
+import tempfile
 
 from click.testing import CliRunner
 
@@ -1373,6 +1374,8 @@ class TestWredQueue(object):
     def setup_class(cls):
         os.environ["PATH"] += os.pathsep + scripts_path
         os.environ['UTILITIES_UNIT_TESTING'] = "2"
+        cls._cache_tmpdir = tempfile.mkdtemp(prefix="wredstat_test_")
+        os.environ['SONIC_CACHE_DIR'] = cls._cache_tmpdir
         remove_tmp_cnstat_file()
         print("SETUP")
 
@@ -1562,4 +1565,7 @@ class TestWredQueue(object):
     def teardown_class(cls):
         os.environ["PATH"] = os.pathsep.join(os.environ["PATH"].split(os.pathsep)[:-1])
         os.environ['UTILITIES_UNIT_TESTING'] = "0"
+        os.environ.pop('SONIC_CACHE_DIR', None)
+        import shutil
+        shutil.rmtree(cls._cache_tmpdir, ignore_errors=True)
         print("TEARDOWN")

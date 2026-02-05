@@ -1,5 +1,6 @@
 import os
 import sys
+import tempfile
 from json import dump
 from copy import deepcopy
 from unittest import mock, TestCase
@@ -19,8 +20,9 @@ class TestConfigMgmt(TestCase):
     '''
 
     def setUp(self):
-        config_mgmt.CONFIG_DB_JSON_FILE = "startConfigDb.json"
-        config_mgmt.DEFAULT_CONFIG_DB_JSON_FILE = "portBreakOutConfigDb.json"
+        # Use PID-unique filenames to avoid races with other xdist workers
+        config_mgmt.CONFIG_DB_JSON_FILE = "startConfigDb.{}.json".format(os.getpid())
+        config_mgmt.DEFAULT_CONFIG_DB_JSON_FILE = "portBreakOutConfigDb.{}.json".format(os.getpid())
         return
 
     def test_config_get_module_check(self):

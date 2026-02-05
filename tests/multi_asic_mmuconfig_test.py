@@ -1,5 +1,7 @@
 import os
 import sys
+import pytest
+
 from .mmuconfig_test import TestMmuConfigBase
 from .mmuconfig_input.mmuconfig_test_vectors import testData
 

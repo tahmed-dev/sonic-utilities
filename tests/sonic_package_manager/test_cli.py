@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 
+import os
 from click.testing import CliRunner
 
 from sonic_package_manager import main
@@ -77,7 +78,14 @@ def test_manifests_create_command_existing_manifest(package_manager):
 
     runner = CliRunner()
 
-    with patch('os.path.exists', side_effect=[True, False]), \
+    _real_exists = os.path.exists
+
+    def _exists_side_effect(path):
+        if 'test-manifest' in str(path):
+            return True
+        return _real_exists(path)
+
+    with patch('os.path.exists', side_effect=_exists_side_effect), \
          patch('sonic_package_manager.main.PackageManager.is_installed', return_value=False), \
          patch('builtins.open', new_callable=mock_open()), \
          patch('os.geteuid', return_value=0):

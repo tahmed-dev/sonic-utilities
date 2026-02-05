@@ -1642,6 +1642,7 @@ class TestReloadConfig(object):
 
     def test_reload_yang_config(self, get_cmd_module,
                                         setup_single_broadcom_asic):
+        self.add_sysinfo_to_cfg_file()
         with mock.patch(
                 "utilities_common.cli.run_command",
                 mock.MagicMock(side_effect=mock_run_command_side_effect)

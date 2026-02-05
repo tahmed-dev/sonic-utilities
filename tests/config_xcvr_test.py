@@ -17,6 +17,9 @@ sys.path.insert(0, modules_path)
 
 @pytest.fixture(scope='module')
 def ctx(scope='module'):
+    from .mock_tables import dbconnector
+    dbconnector.dedicated_dbs = {}
+    dbconnector.load_database_config()
     db = Db()
     obj = {'config_db':db.cfgdb, 'namespace': ''}
     yield obj
@@ -28,6 +31,9 @@ class TestConfigXcvr(object):
         print("SETUP")
         os.environ["PATH"] += os.pathsep + scripts_path
         os.environ["UTILITIES_UNIT_TESTING"] = "1"
+        from .mock_tables import dbconnector
+        dbconnector.dedicated_dbs = {}
+        dbconnector.load_database_config()
 
     def test_config_laser_frequency(self, ctx):
         #self.basic_check("link-training", ["Ethernet0", "on"], ctx)

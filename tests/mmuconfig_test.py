@@ -1,7 +1,9 @@
 import os
 import sys
 import json
+import tempfile
 import pytest
+
 
 from click.testing import CliRunner
 import config.main as config
@@ -22,6 +24,9 @@ class TestMmuConfigBase(object):
         print('SETUP')
         os.environ["PATH"] += os.pathsep + scripts_path
         os.environ['UTILITIES_UNIT_TESTING'] = "2"
+        cls._mmuconfig_tmpdir = tempfile.mkdtemp(prefix="mmuconfig_test_")
+        cls._mmuconfig_file = os.path.join(cls._mmuconfig_tmpdir, 'mmuconfig')
+        os.environ['MMUCONFIG_FILE'] = cls._mmuconfig_file
 
     def executor(self, input):
         runner = CliRunner()
@@ -52,7 +57,7 @@ class TestMmuConfigBase(object):
             assert exit_code != 0
 
         if 'cmp_args' in input:
-            fd = open('/tmp/mmuconfig', 'r')
+            fd = open(os.environ.get('MMUCONFIG_FILE', '/tmp/mmuconfig'), 'r')
             cmp_data = json.load(fd)
             for args in input['cmp_args']:
                 namespace, profile, name, value = args.split(',')
@@ -69,8 +74,9 @@ class TestMmuConfigBase(object):
     def teardown_class(cls):
         os.environ["PATH"] = os.pathsep.join(os.environ["PATH"].split(os.pathsep)[:-1])
         os.environ['UTILITIES_UNIT_TESTING'] = "0"
-        if os.path.isfile('/tmp/mmuconfig'):
-            os.remove('/tmp/mmuconfig')
+        os.environ.pop('MMUCONFIG_FILE', None)
+        import shutil
+        shutil.rmtree(cls._mmuconfig_tmpdir, ignore_errors=True)
         print("TEARDOWN")
 
 

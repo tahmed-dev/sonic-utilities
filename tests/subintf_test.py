@@ -18,6 +18,9 @@ class TestSubinterface(object):
     @classmethod
     def setup_class(cls):
         os.environ['UTILITIES_UNIT_TESTING'] = "1"
+        from .mock_tables import dbconnector
+        dbconnector.dedicated_dbs = {}
+        dbconnector.load_database_config()
         print("SETUP")
 
     def test_add_del_subintf_short_name(self):

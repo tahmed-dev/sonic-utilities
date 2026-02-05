@@ -43,7 +43,7 @@ try: # pragma: no cover
         sys.path.insert(0, test_path)
         from tests.mock_tables import dbconnector
 
-    if os.environ["FDBSHOW_UNIT_TESTING"] == "1":
+    if os.environ.get("FDBSHOW_UNIT_TESTING") == "1":
         mock_variants = { "1": 'asic_db',
                           "2": 'asic_db_def_vlan',
                           "3": 'asic_db_no_fdb',

@@ -2,6 +2,9 @@ import os
 import logging
 import pytest
 
+
+# Group all tests on same worker - shared YANG model files
+pytestmark = pytest.mark.xdist_group("cli_autogen")
 import show.plugins as show_plugins
 import show.main as show_main
 import config.plugins as config_plugins
