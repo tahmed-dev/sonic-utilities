@@ -4294,7 +4294,7 @@ def advertised_types(ctx, interface_name, interface_type_list, verbose):
 
 @interface.command()
 @click.argument('interface_name', metavar='<interface_name>', required=True)
-@click.argument('mode', required=True, type=click.STRING, autocompletion=_get_breakout_options)
+@click.argument('mode', required=True, type=click.STRING, shell_complete=_get_breakout_options)
 @click.option('-f', '--force-remove-dependencies', is_flag=True,  help='Clear all dependencies internally first.')
 @click.option('-l', '--load-predefined-config', is_flag=True,  help='load predefied user configuration (alias, lanes, speed etc) first.')
 @click.option('-y', '--yes', is_flag=True, callback=_abort_if_false, expose_value=False, prompt='Do you want to Breakout the port, continue?')
