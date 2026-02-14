@@ -1,3 +1,7 @@
+import pytest
+
+# Group all tests on same worker - shared mock DB and subprocess state
+pytestmark = pytest.mark.xdist_group("chassis_modules")
 import sys
 import os
 from click.testing import CliRunner
@@ -142,6 +146,10 @@ class TestChassisModules(object):
     def setup_class(cls):
         print("SETUP")
         os.environ["UTILITIES_UNIT_TESTING"] = "1"
+        # Ensure scripts/ is in PATH so voqutil subprocess calls work
+        scripts_path = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "scripts")
+        if scripts_path not in os.environ.get("PATH", ""):
+            os.environ["PATH"] += os.pathsep + scripts_path
 
     def test_show_and_verify_output(self):
         runner = CliRunner()

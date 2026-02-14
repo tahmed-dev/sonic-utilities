@@ -215,6 +215,7 @@ CRC-32               0xFE        4  0xAC518FB3
 
     def test_instantiate_eeprom_object(self):
         """Test instantiate_eeprom_object to cover lazy import of sonic_platform"""
-        eeprom = decode_syseeprom.instantiate_eeprom_object()
-        # Since sonic_platform is mocked, this should return the mocked eeprom object
-        assert eeprom is not None
+        with mock.patch.dict('sys.modules', {'sonic_platform': mock.MagicMock()}):
+            eeprom = decode_syseeprom.instantiate_eeprom_object()
+            # Since sonic_platform is mocked, this should return the mocked eeprom object
+            assert eeprom is not None

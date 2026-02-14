@@ -26,6 +26,21 @@ test_path = os.path.dirname(os.path.abspath(__file__))
 modules_path = os.path.dirname(test_path)
 sys.path.insert(0, modules_path)
 
+import importlib
+import shutil
+import tempfile
+from utilities_common import multi_asic as multi_asic_util
+
+# -- Capture original (un-mocked) function references at import time --
+# These are saved before any test monkey-patches them.
+_orig_is_multi_asic = multi_asic.is_multi_asic
+_orig_get_num_asics = multi_asic.get_num_asics
+_orig_get_namespace_list = multi_asic.get_namespace_list
+_orig_get_namespaces_from_linux = getattr(multi_asic, "get_namespaces_from_linux", None)
+_orig_ma_util_get_ip_intf = getattr(multi_asic_util, "multi_asic_get_ip_intf_from_ns", None)
+_orig_ma_util_get_ip_intf_addr = getattr(multi_asic_util, "multi_asic_get_ip_intf_addr_from_ns", None)
+
+
 generated_services_list = [
     'warmboot-finalizer.service',
     'watchdog-control.service',
@@ -462,8 +477,52 @@ def mock_restart_dhcp_relay_service():
     config.vlan.dhcp_relay_util.restart_dhcp_relay_service = origin_funcs[0]
     config.vlan.is_dhcp_relay_running = origin_funcs[1]
 
-import shutil
-import tempfile
+
+
+
+
+@pytest.fixture(autouse=True, scope="module")
+def _reset_global_state_per_module():
+    """Reset process-global state between test modules (files).
+
+    Under pytest-xdist --dist=loadfile, a single worker runs multiple test
+    files sequentially.  Multi-asic test files monkey-patch multi_asic.*,
+    dbconnector.dedicated_dbs/topo, SonicDBConfig, and environment variables.
+    If their teardown is incomplete (or absent), the next file inherits dirty
+    state and fails with RuntimeError or wrong behaviour.
+
+    This module-scoped fixture runs once at the start of each file and once
+    at the end, guaranteeing a clean single-asic baseline between files.
+    """
+    _do_reset_global_state()
+    yield
+    _do_reset_global_state()
+
+
+def _do_reset_global_state():
+    """Restore all process-global test state to the single-asic default."""
+    # 1. Reset multi_asic functions to single-asic defaults
+    multi_asic.is_multi_asic = _orig_is_multi_asic
+    multi_asic.get_num_asics = _orig_get_num_asics
+    multi_asic.get_namespace_list = _orig_get_namespace_list
+    if _orig_get_namespaces_from_linux is not None:
+        multi_asic.get_namespaces_from_linux = _orig_get_namespaces_from_linux
+    if _orig_ma_util_get_ip_intf is not None:
+        multi_asic_util.multi_asic_get_ip_intf_from_ns = _orig_ma_util_get_ip_intf
+    if _orig_ma_util_get_ip_intf_addr is not None:
+        multi_asic_util.multi_asic_get_ip_intf_addr_from_ns = _orig_ma_util_get_ip_intf_addr
+
+    # 2. Reset dbconnector globals
+    dbconnector.dedicated_dbs = {}
+    dbconnector.topo = None
+
+    # 3. Re-initialize SonicDBConfig to single-namespace mode
+    dbconnector.load_database_config()
+
+    # 4. Reset environment variables that leak between test files
+    os.environ.pop("UTILITIES_UNIT_TESTING_TOPOLOGY", None)
+    os.environ["UTILITIES_UNIT_TESTING"] = "0"
+    os.environ.pop("SONIC_CLI_IFACE_MODE", None)
 
 
 @pytest.fixture(autouse=True, scope="function")

@@ -1,6 +1,7 @@
 import json
 import os
 import sys
+import tempfile
 from io import StringIO
 from unittest import mock
 
@@ -16,6 +17,11 @@ aclshow_path = os.path.join(scripts_path, 'aclshow')
 aclshow = load_module_from_source('aclshow', aclshow_path)
 
 from .mock_tables import dbconnector
+
+import pytest
+
+# Group all aclshow tests on the same xdist worker to preserve shared mock DB state
+pytestmark = pytest.mark.xdist_group("aclshow")
 
 
 # Expected output for aclshow
@@ -295,27 +301,34 @@ def test_clear():
 
 
 def test_all_after_clear():
-    nullify_on_start, nullify_on_exit = True, False
-    test = Aclshow(nullify_on_start, nullify_on_exit, all=True, clear=True, rules=None, tables=None, verbose=None)
-    assert test.result.getvalue() == clear_output
-    nullify_on_start, nullify_on_exit = False, True
-    test = Aclshow(nullify_on_start, nullify_on_exit, all=True, clear=False, rules=None, tables=None, verbose=None)
-    assert test.result.getvalue() == all_after_clear_output
+    with tempfile.TemporaryDirectory(prefix="aclshow_test_") as tmpdir:
+        isolated_cache = os.path.join(tmpdir, 'aclstat')
+        with mock.patch.object(aclshow, 'COUNTERS_CACHE', isolated_cache):
+            nullify_on_start, nullify_on_exit = True, False
+            test = Aclshow(nullify_on_start, nullify_on_exit, all=True, clear=True, rules=None, tables=None, verbose=None)
+            assert test.result.getvalue() == clear_output
+            nullify_on_start, nullify_on_exit = False, True
+            test = Aclshow(nullify_on_start, nullify_on_exit, all=True, clear=False, rules=None, tables=None, verbose=None)
+            assert test.result.getvalue() == all_after_clear_output
 
 
 def test_clear_and_populate_counters_db():
-    # No counters yet for DATAACL_NO_COUNTER:RULE_NO_COUNTER
-    nullify_on_start, nullify_on_exit = True, False
-    test = Aclshow(nullify_on_start, nullify_on_exit, all=True, clear=True, rules=None, tables=None, verbose=None)
-    assert test.result.getvalue() == clear_output
-    nullify_on_start, nullify_on_exit = False, True
+    # Use an isolated cache file to avoid interference from parallel workers
+    with tempfile.TemporaryDirectory(prefix="aclshow_test_") as tmpdir:
+        isolated_cache = os.path.join(tmpdir, 'aclstat')
+        with mock.patch.object(aclshow, 'COUNTERS_CACHE', isolated_cache):
+            # No counters yet for DATAACL_NO_COUNTER:RULE_NO_COUNTER
+            nullify_on_start, nullify_on_exit = True, False
+            test = Aclshow(nullify_on_start, nullify_on_exit, all=True, clear=True, rules=None, tables=None, verbose=None)
+            assert test.result.getvalue() == clear_output
+            nullify_on_start, nullify_on_exit = False, True
 
-    # Counters populated.
-    conn = dbconnector.SonicV2Connector()
-    conn.connect(conn.COUNTERS_DB)
-    conn.set(conn.COUNTERS_DB, aclshow.COUNTERS + ':oid:0x900000000000b', aclshow.COUNTER_PACKETS_ATTR, '100')
-    conn.set(conn.COUNTERS_DB, aclshow.COUNTERS + ':oid:0x900000000000b', aclshow.COUNTER_BYTES_ATTR, '100')
+            # Counters populated.
+            conn = dbconnector.SonicV2Connector()
+            conn.connect(conn.COUNTERS_DB)
+            conn.set(conn.COUNTERS_DB, aclshow.COUNTERS + ':oid:0x900000000000b', aclshow.COUNTER_PACKETS_ATTR, '100')
+            conn.set(conn.COUNTERS_DB, aclshow.COUNTERS + ':oid:0x900000000000b', aclshow.COUNTER_BYTES_ATTR, '100')
 
-    with mock.patch('aclshow.SonicV2Connector', return_value=conn):
-        test = Aclshow(nullify_on_start, nullify_on_exit, all=True, clear=False, rules=None, tables=None, verbose=None)
-    assert test.result.getvalue() == all_after_clear_and_populate_output
+            with mock.patch('aclshow.SonicV2Connector', return_value=conn):
+                test = Aclshow(nullify_on_start, nullify_on_exit, all=True, clear=False, rules=None, tables=None, verbose=None)
+            assert test.result.getvalue() == all_after_clear_and_populate_output

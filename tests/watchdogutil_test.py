@@ -1,3 +1,4 @@
+import sys
 from click.testing import CliRunner
 import watchdogutil.main as watchdogutil
 from unittest.mock import patch, MagicMock
@@ -13,10 +14,17 @@ class TestWatchdog(object):
 
     @patch('os.geteuid', MagicMock(return_value=0))
     def test_import_fails(self):
-        runner = CliRunner()
-        result = runner.invoke(watchdogutil.watchdogutil, ["version"])
-        assert result.exit_code != 0
-        assert result.exception
+        # Remove any leaked sonic_platform mock from other test files
+        # so load_platform_watchdog() actually fails with ImportError
+        saved = sys.modules.pop('sonic_platform', None)
+        try:
+            runner = CliRunner()
+            result = runner.invoke(watchdogutil.watchdogutil, ["version"])
+            assert result.exit_code != 0
+            assert result.exception
+        finally:
+            if saved is not None:
+                sys.modules['sonic_platform'] = saved
 
     def test_version(self):
         runner = CliRunner()
