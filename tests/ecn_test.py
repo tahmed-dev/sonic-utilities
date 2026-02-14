@@ -23,11 +23,14 @@ sys.path.insert(0, modules_path)
 
 
 class TestEcnConfigBase(object):
+    ecn_test_file = '/tmp/ecnconfig.{}'.format(os.getpid())
+
     @classmethod
     def setup_class(cls):
         print("SETUP")
         os.environ["PATH"] += os.pathsep + scripts_path
         os.environ['UTILITIES_UNIT_TESTING'] = "2"
+        os.environ['ECN_CFG_TEST_FILE'] = cls.ecn_test_file
 
     def process_cmp_args(self, cmp_args):
         """
@@ -78,7 +81,7 @@ class TestEcnConfigBase(object):
             assert exit_code != 0
 
         if 'cmp_args' in input:
-            fd = open('/tmp/ecnconfig', 'r')
+            fd = open(self.ecn_test_file, 'r')
             cmp_data = json.load(fd)
 
             # Verify queue assignments
@@ -117,8 +120,8 @@ class TestEcnConfigBase(object):
         os.environ['PATH'] = os.pathsep.join(os.environ['PATH'].split(os.pathsep)[:-1])
         os.environ['UTILITIES_UNIT_TESTING'] = "0"
 
-        if os.path.isfile('/tmp/ecnconfig'):
-            os.remove('/tmp/ecnconfig')
+        if os.path.isfile(cls.ecn_test_file):
+            os.remove(cls.ecn_test_file)
         print("TEARDOWN")
 
 
