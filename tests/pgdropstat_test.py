@@ -42,6 +42,8 @@ class TestPgDropstat(object):
     def setup_class(cls):
         os.environ["PATH"] += os.pathsep + scripts_path
         os.environ['UTILITIES_UNIT_TESTING'] = "2"
+        dbconnector.dedicated_dbs = {}
+        dbconnector.load_database_config()
         print("SETUP")
 
     def replace_file(self, file_name_src, file_name_dst):
