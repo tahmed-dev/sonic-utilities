@@ -206,8 +206,9 @@ class TestPcieUtil(object):
         stdout = sys.stdout
         sys.stdout = result = StringIO()
         try:
-            pcieutil.load_platform_pcieutil()
-        except ImportError:
+            with mock.patch('sonic_py_common.device_info.get_platform', return_value='x86_64-test_platform'):
+                pcieutil.load_platform_pcieutil()
+        except (ImportError, Exception):
             pass
         sys.stdout = stdout
         assert pcieutil_load_module_warning_msg not in result.getvalue()

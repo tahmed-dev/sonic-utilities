@@ -24,11 +24,11 @@ try:
         sys.path.insert(0, tests_path)
         from mock_tables import dbconnector
 
-        if os.environ["UTILITIES_UNIT_TESTING_TOPOLOGY"] == "multi_asic":
+        if os.environ.get("UTILITIES_UNIT_TESTING_TOPOLOGY") == "multi_asic":
             import tests.mock_tables.mock_multi_asic
             dbconnector.load_namespace_config()
 
-        if os.environ["WATERMARKSTAT_UNIT_TESTING"] == "1":
+        if os.environ.get("WATERMARKSTAT_UNIT_TESTING") == "1":
             input_path = os.path.join(tests_path, "wm_input")
             mock_db_path = os.path.join(input_path, "mock_db")
 
