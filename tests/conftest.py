@@ -39,6 +39,7 @@ _orig_get_namespace_list = multi_asic.get_namespace_list
 _orig_get_namespaces_from_linux = getattr(multi_asic, "get_namespaces_from_linux", None)
 _orig_ma_util_get_ip_intf = getattr(multi_asic_util, "multi_asic_get_ip_intf_from_ns", None)
 _orig_ma_util_get_ip_intf_addr = getattr(multi_asic_util, "multi_asic_get_ip_intf_addr_from_ns", None)
+_orig_interface_name_is_valid = config.interface_name_is_valid
 
 
 generated_services_list = [
@@ -523,6 +524,12 @@ def _do_reset_global_state():
     os.environ.pop("UTILITIES_UNIT_TESTING_TOPOLOGY", None)
     os.environ["UTILITIES_UNIT_TESTING"] = "0"
     os.environ.pop("SONIC_CLI_IFACE_MODE", None)
+
+    # 5. Restore config.main functions that tests monkey-patch without cleanup
+    config.interface_name_is_valid = _orig_interface_name_is_valid
+
+    # 6. Restore config.ADHOC_VALIDATION to default (True)
+    config.ADHOC_VALIDATION = True
 
 
 @pytest.fixture(autouse=True, scope="function")
