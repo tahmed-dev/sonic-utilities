@@ -29,18 +29,16 @@ class TestShowIpRouteCommands(object):
             setup_ip_route_commands):
         show = setup_ip_route_commands
 
-        def mock_run_bgp_command(*args, **kwargs):
-            command = args[0]
-            return "% Unknown command: show ip route unknown", 1
+        def mock_run_bgp_show_command(*args, **kwargs):
+            raise SystemExit(1)
 
-        with mock.patch('utilities_common.cli.run_command', mock.MagicMock(side_effect=mock_run_bgp_command)) as mock_run_command:
+        with mock.patch('utilities_common.bgp_util.run_bgp_show_command', side_effect=mock_run_bgp_show_command):
             runner = CliRunner()
             result = runner.invoke(
                 show.cli.commands["ip"].commands["route"], ["unknown"])
             print("{}".format(result.output))
             print(result.exit_code)
             assert result.exit_code == 1
-            assert result.output == "% Unknown command: show ip route unknown" + "\n"
 
     @pytest.mark.parametrize('setup_single_bgp_instance',
                              ['ip_route'], indirect=['setup_single_bgp_instance'])

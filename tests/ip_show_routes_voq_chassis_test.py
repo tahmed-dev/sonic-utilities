@@ -88,6 +88,8 @@ class TestMultiAsicVoqLcShowIpRouteDisplayAllCommands(object):
     @pytest.mark.parametrize('setup_multi_asic_bgp_instance',
                              ['ip_route_lc_2'], indirect=['setup_multi_asic_bgp_instance'])
     @mock.patch("sonic_py_common.device_info.is_voq_chassis", mock.MagicMock(return_value=True))
+    @mock.patch("sonic_py_common.multi_asic.is_multi_asic", mock.MagicMock(return_value=True))
+    @mock.patch("sonic_py_common.multi_asic.get_back_end_interface_set", mock.MagicMock(return_value={"Ethernet-BP0", "Ethernet-BP4", "Ethernet-BP256", "Ethernet-BP260"}))
     @mock.patch.object(multi_asic_util.MultiAsic, "get_ns_list_based_on_options",
                        mock.MagicMock(return_value=["asic0", "asic1"]))
     def test_voq_chassis_lc_def_route_2(
