@@ -87,22 +87,24 @@ class TestMultiAsicVoqLcShowIpRouteDisplayAllCommands(object):
 
     @pytest.mark.parametrize('setup_multi_asic_bgp_instance',
                              ['ip_route_lc_2'], indirect=['setup_multi_asic_bgp_instance'])
-    @mock.patch("sonic_py_common.device_info.is_voq_chassis", mock.MagicMock(return_value=True))
-    @mock.patch("sonic_py_common.multi_asic.is_multi_asic", mock.MagicMock(return_value=True))
-    @mock.patch("sonic_py_common.multi_asic.get_back_end_interface_set", mock.MagicMock(return_value={"Ethernet-BP0", "Ethernet-BP4", "Ethernet-BP256", "Ethernet-BP260"}))
-    @mock.patch.object(multi_asic_util.MultiAsic, "get_ns_list_based_on_options",
-                       mock.MagicMock(return_value=["asic0", "asic1"]))
     def test_voq_chassis_lc_def_route_2(
             self,
             setup_ip_route_commands,
             setup_multi_asic_bgp_instance):
 
-        runner = CliRunner()
-        result = runner.invoke(
-            show.cli.commands["ip"].commands["route"], ["0.0.0.0/0"])
-        print("{}".format(result.output))
-        assert result.exit_code == 0
-        assert result.output == show_ip_route_common.SHOW_IP_ROUTE_LC_DEFAULT_ROUTE_2
+        from sonic_py_common import device_info, multi_asic
+        back_end_set = {"Ethernet-BP0", "Ethernet-BP4", "Ethernet-BP256", "Ethernet-BP260"}
+        with mock.patch.object(device_info, "is_voq_chassis", return_value=True), \
+             mock.patch.object(multi_asic, "is_multi_asic", return_value=True), \
+             mock.patch.object(multi_asic, "get_back_end_interface_set", return_value=back_end_set), \
+             mock.patch.object(multi_asic_util.MultiAsic, "get_ns_list_based_on_options",
+                               return_value=["asic0", "asic1"]):
+            runner = CliRunner()
+            result = runner.invoke(
+                show.cli.commands["ip"].commands["route"], ["0.0.0.0/0"])
+            print("{}".format(result.output))
+            assert result.exit_code == 0
+            assert result.output == show_ip_route_common.SHOW_IP_ROUTE_LC_DEFAULT_ROUTE_2
 
     @classmethod
     def teardown_class(cls):
