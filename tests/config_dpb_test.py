@@ -162,8 +162,8 @@ def config_mgmt_dpb(cfgdb):
     '''
     curConfig = read_config_db(cfgdb)
     # create object
-    config_mgmt.CONFIG_DB_JSON_FILE = "/tmp/startConfigDb.json"
-    config_mgmt.DEFAULT_CONFIG_DB_JSON_FILE = "/tmp/portBreakOutConfigDb.json"
+    config_mgmt.CONFIG_DB_JSON_FILE = "/tmp/startConfigDb.{}.json".format(os.getpid())
+    config_mgmt.DEFAULT_CONFIG_DB_JSON_FILE = "/tmp/portBreakOutConfigDb.{}.json".format(os.getpid())
     # write in temp file
     writeJson(curConfig, config_mgmt.CONFIG_DB_JSON_FILE)
     writeJson(portBreakOutConfigDbJson, config_mgmt.DEFAULT_CONFIG_DB_JSON_FILE)
@@ -704,8 +704,8 @@ class TestConfigDPB(object):
     @classmethod
     def teardown_class(cls):
         print("TEARDOWN")
-        os.system("rm /tmp/startConfigDb.json")
-        os.system("rm /tmp/portBreakOutConfigDb.json")
+        os.system("rm -f /tmp/startConfigDb.{}.json".format(os.getpid()))
+        os.system("rm -f /tmp/portBreakOutConfigDb.{}.json".format(os.getpid()))
         os.environ["UTILITIES_UNIT_TESTING"] = "0"
         return
 
