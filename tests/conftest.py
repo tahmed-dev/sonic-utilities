@@ -545,7 +545,7 @@ def _sandbox_mock_tables():
     src = os.path.join(test_path, "mock_tables")
     tmp = tempfile.mkdtemp(prefix="mock_tables_")
     dst = os.path.join(tmp, "mock_tables")
-    shutil.copytree(src, dst)
+    shutil.copytree(src, dst, ignore=shutil.ignore_patterns("__pycache__"))
 
     orig_input_dir = dbconnector.INPUT_DIR
 
